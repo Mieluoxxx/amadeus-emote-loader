@@ -35,7 +35,9 @@ E-mote 是 M2 的产品名，本项目只处理它的数据文件。
 | 0 | 读 PSB → 模型树；与 FreeMote 解包出的 JSON 逐字段对照 | ✅ 四个模型结构一致 |
 | 0 | 写 PSB（`emote-psb` 的 `PsbWriter`）→ 回读比对 | ✅ 树与资源字节完全相同 |
 | 0 | 端到端像素验收（132 MB 真实贴图模型，JS 编码 vs Rust 回写） | ✅ 像素指纹完全相同 |
-| 1 | 兼容规范化（选择器索引化、`cw`→`opa`、`arm_type`、眼球镜像…） | ⬜ 未开始 |
+| 1 | 兼容规范化（选择器索引化、`cw`→`opa`、`arm_type`、眼球镜像…） | ✅ 已移植 `prepareModel` 的 5 条规则，四个模型与 JS 参照实现逐字段一致；8 条单测 |
+| 1 | 离散轨道摘除 + `snaps` 导出（`detachSnapTracks`） | ⬜ 未开始 |
+| 1 | `bake` 子命令：模型目录 → 现成 PSB | ⬜ 未开始 |
 | 2 | MZS 外壳（`mzs\0` + zstd + MT19937 密钥流） | ⬜ 未开始 |
 | 3 | 编到 wasm32 + 贴图路径 | ⬜ 未开始 |
 
@@ -74,6 +76,9 @@ cargo run --release --bin psb-dump -- <输入.psb> <输出.json>
 
 # 读 → 写 → 再读，校验树与资源字节
 cargo run --release --bin psb-roundtrip -- <输入.psb> <输出.psb>
+
+# 原始解包 JSON → 兼容规范化 → JSON（与实验室的 JS 参照实现对照）
+cargo run --release --bin psb-normalize -- <raw.json> <out.json>
 ```
 
 `psb-dump` 的输出与 FreeMote `PsbDecompile` 的 JSON 对齐（资源引用写作 `#resource#N` / `#resource@N`），

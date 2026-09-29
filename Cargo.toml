@@ -9,6 +9,8 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 emote-psb = "0.8"
 serde_json = "1"
+# 键类型必须与 emote-psb 内部使用的 SmolStr 同版本，否则类型不兼容
+smol_str = "0.3"
 
 [lib]
 name = "amadeus_emote_loader"
@@ -21,3 +23,7 @@ path = "src/main.rs"
 [[bin]]
 name = "psb-roundtrip"
 path = "src/bin/psb-roundtrip.rs"
+
+[[bin]]
+name = "psb-normalize"
+path = "src/bin/psb-normalize.rs"

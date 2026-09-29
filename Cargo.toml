@@ -21,6 +21,8 @@ smol_str = "0.3"
 [lib]
 name = "amadeus_emote_loader"
 path = "src/lib.rs"
+# cdylib 供 wasm32 目标（实验室页面直接加载）
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "emote-loader"

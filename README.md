@@ -166,6 +166,24 @@ const timer = setTimeout(() => {
 | 烘焙耗时 | 常服 C：132 MB / **367 ms**（贴图解码约 100 ms）；白衣 C：211 MB / 479 ms |
 | 树的编码收益有限 | 变长整数让「树」小 37%，但贴图占体积 99.6%，整份只小 0.35% |
 | 离散轨道规模 | 每个模型 44–56 条（表情时间线各 2–3 条） |
+| wasm 与原生**语义等价** | 四个模型：解码树一致、665 个资源文件逐字节相同、随附数据一致；wasm 侧 45–136 ms |
+| 输出**不逐字节可复现** | `PsbValue::Object` 是 `HashMap`，写出顺序随进程随机 —— 同一输入两次的 sha256 与体积都会差几个字节（树一致）。验收请比树/资源，别比整份哈希；缓存键用源文件指纹 |
+
+## 浏览器侧（wasm32）
+
+```bash
+cargo build --lib --release --target wasm32-unknown-unknown
+# → target/wasm32-unknown-unknown/release/amadeus_emote_loader.wasm（约 351 KB）
+```
+
+刻意**不用 wasm-bindgen**：消费方要的是「静态服务器 + 一个 `.wasm`」，多一条工具链不值得。
+协议是零拷贝的（JS 把每段输入直接分配进 wasm 内存，`emote_bake` 接管所有权），
+四个导出：`emote_alloc` / `emote_free` / `emote_bake` / `emote_free_output`，细节见 `src/wasm.rs` 头注释。
+实验室的 `tools/emote-loader-wasm.mjs` 是一份可直接抄的薄封装（Node 与浏览器通用）。
+
+参数与返回值：输入是模型 JSON + 贴图 RGBA 数组 + 附加资源数组（贴图由宿主自己解码，
+浏览器用 canvas、Node 用 `png` crate 的原生侧则由 `bake` 自己解）；输出是
+`[u32 总长][u32 头长][头 JSON][PSB 字节]`，头 JSON 就是与 `bake --meta` 相同的 `metadata/snaps/parts`。
 
 ## 验收
 
@@ -213,7 +231,7 @@ Apache-2.0 的宿主应用，整条链路不再有非商业或 copyleft 的代�
 | 0 | PSB 解析 / 写回 / 与 FreeMote JSON 对照 / 端到端像素验收 | ✅ |
 | 1 | 兼容规范化、离散轨道摘除、贴图解码、`bake`、部件查表 | ✅ |
 | 2 | MZS 外壳（`mzs\0` + zstd + MT19937 密钥流），直接吃游戏原包 | ⬜ **缺可验证的样本与密钥**，拿到样本再动（先有验收再写代码） |
-| 3 | 编到 wasm32 + 浏览器侧绑定 | ⬜ 暂无消费方（产品走原生工具、实验室走 JS 参照实现） |
+| 3 | 编到 wasm32 + 浏览器侧绑定 | ✅ 无 wasm-bindgen 的手写 ABI（351 KB），实验室页面已改用它 |
 
 MZS 那一层已经查清：头部 `mzs\0` + 4 字节解压后长度，正文是 **zstd 压缩**（不是 MT19937）；
 `-k/-l` 管的是另一层 —— MT19937 生成的重复密钥流逐字节 XOR（默认长度 131，跳过 8 字节头）。

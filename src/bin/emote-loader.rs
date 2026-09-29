@@ -9,7 +9,7 @@
 
 use std::{collections::BTreeMap, env, fs, path::{Path, PathBuf}, process::ExitCode, sync::Arc, time::Instant};
 
-use amadeus_emote_loader::{decode_png, detach_snap_tracks, json_to_psb, model_metadata, part_table, prepare_model, psb_to_json, sorted_object};
+use amadeus_emote_loader::{decode_png, detach_snap_tracks, json_to_psb, meta_document, prepare_model};
 use emote_psb::psb::write::PsbWriter;
 use serde_json::Value;
 
@@ -176,21 +176,9 @@ fn bake_model(options: &Options) -> Result<String, String> {
     writer.finish().map_err(|error| error.to_string())?;
     let write = write_started.elapsed();
 
-    // 消费方随附数据：原始 metadata、摘除的轨道、partVariables 的查表数据。
+    // 消费方随附数据：与 wasm 入口共用同一个构造函数。
     if let Some(path) = &options.meta {
-        let metadata = model_metadata(&model).map(psb_to_json).unwrap_or(Value::Null);
-        let snapped: serde_json::Map<String, Value> = tracks
-            .iter()
-            .map(|(label, entries)| {
-                let list = Value::Array(entries.iter().map(|(track, value)| Value::Array(vec![Value::String(track.clone()), number_json(*value)])).collect());
-                (label.clone(), list)
-            })
-            .collect();
-        let payload = serde_json::json!({
-            "metadata": sorted_object(&metadata),
-            "snaps": Value::Object(snapped),
-            "parts": part_table(model_metadata(&model).unwrap_or(&emote_psb::value::PsbValue::Null)),
-        });
+        let payload = meta_document(&model, &tracks);
         fs::write(path, serde_json::to_string(&payload).map_err(|error| error.to_string())?).map_err(|error| error.to_string())?;
     }
 
@@ -211,14 +199,6 @@ fn bake_model(options: &Options) -> Result<String, String> {
         texture_pixels,
         started.elapsed()
     ))
-}
-
-fn number_json(value: f64) -> Value {
-    if value.fract() == 0.0 {
-        Value::Number(serde_json::Number::from(value as i64))
-    } else {
-        serde_json::Number::from_f64(value).map_or(Value::Null, Value::Number)
-    }
 }
 
 /// 供未来子命令复用的路径检查。

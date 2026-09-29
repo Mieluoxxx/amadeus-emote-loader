@@ -72,22 +72,25 @@ fn list_mut(value: &mut PsbValue) -> Option<&mut Vec<PsbValue>> {
     }
 }
 
-fn member<'a>(value: &'a PsbValue, key: &str) -> Option<&'a PsbValue> {
+pub(crate) fn member<'a>(value: &'a PsbValue, key: &str) -> Option<&'a PsbValue> {
     as_object(value)?.get(key)
 }
 
-fn member_mut<'a>(value: &'a mut PsbValue, key: &str) -> Option<&'a mut PsbValue> {
+/// 只读取成员（`member` 的另一名字，供 parts 模块使用）。
+pub(crate) use member as member_of;
+
+pub(crate) fn member_mut<'a>(value: &'a mut PsbValue, key: &str) -> Option<&'a mut PsbValue> {
     object_mut(value)?.get_mut(key)
 }
 
-fn string_of(value: &PsbValue) -> Option<String> {
+pub(crate) fn string_of(value: &PsbValue) -> Option<String> {
     match value {
         PsbValue::String(text) => Some(text.to_string()),
         _ => None,
     }
 }
 
-fn number_of(value: &PsbValue) -> Option<f64> {
+pub(crate) fn number_of(value: &PsbValue) -> Option<f64> {
     match value {
         PsbValue::Number(PsbNumber::Integer(number)) => Some(*number as f64),
         PsbValue::Number(PsbNumber::Double(number)) => Some(*number),
@@ -97,7 +100,7 @@ fn number_of(value: &PsbValue) -> Option<f64> {
 }
 
 /// JS 的真值语义：`false` / `0` / `""` / `null` / 缺失 都是假，**对象与列表恒为真**（哪怕空）。
-fn truthy(value: Option<&PsbValue>) -> bool {
+pub(crate) fn truthy(value: Option<&PsbValue>) -> bool {
     match value {
         None | Some(PsbValue::Null) => false,
         Some(PsbValue::Bool(flag)) => *flag,
@@ -109,7 +112,7 @@ fn truthy(value: Option<&PsbValue>) -> bool {
     }
 }
 
-fn object_entries(value: &PsbValue) -> &[PsbValue] {
+pub(crate) fn object_entries(value: &PsbValue) -> &[PsbValue] {
     match value {
         PsbValue::List(items) => items,
         _ => &[],

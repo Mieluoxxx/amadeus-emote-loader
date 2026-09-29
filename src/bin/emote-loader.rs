@@ -9,7 +9,7 @@
 
 use std::{collections::BTreeMap, env, fs, path::{Path, PathBuf}, process::ExitCode, sync::Arc, time::Instant};
 
-use amadeus_emote_loader::{decode_png, detach_snap_tracks, json_to_psb, prepare_model};
+use amadeus_emote_loader::{decode_png, detach_snap_tracks, json_to_psb, model_metadata, part_table, prepare_model, psb_to_json, sorted_object};
 use emote_psb::psb::write::PsbWriter;
 use serde_json::Value;
 
@@ -32,12 +32,16 @@ struct Options {
     model: PathBuf,
     out: PathBuf,
     snaps: Option<PathBuf>,
+    /// 消费方要的随附数据：metadata / snaps / partVariables 查表。
+    /// 省略时写在 `<out>.meta.json`（把 .psb 换成 .meta.json）。
+    meta: Option<PathBuf>,
 }
 
 fn parse(args: &[String]) -> Option<Options> {
     let mut model = None;
     let mut out = None;
     let mut snaps = None;
+    let mut meta = None;
     let mut index = 0;
     while index < args.len() {
         let value = args.get(index + 1);
@@ -45,6 +49,7 @@ fn parse(args: &[String]) -> Option<Options> {
             "--model" => model = value.map(PathBuf::from),
             "--out" => out = value.map(PathBuf::from),
             "--snaps" => snaps = value.map(PathBuf::from),
+            "--meta" => meta = value.map(PathBuf::from),
             other => {
                 eprintln!("未知参数 {other}");
                 return None;
@@ -52,7 +57,9 @@ fn parse(args: &[String]) -> Option<Options> {
         }
         index += 2;
     }
-    Some(Options { model: model?, out: out?, snaps })
+    let out = out?;
+    let meta = meta.or_else(|| Some(out.with_extension("meta.json")));
+    Some(Options { model: model?, out, snaps, meta })
 }
 
 /// 资源索引：`Resources` 的键是 `"0"`，`ExtraResources`/`ExtraFlattenArrays` 的键是 `"@0"`。
@@ -169,6 +176,24 @@ fn bake_model(options: &Options) -> Result<String, String> {
     writer.finish().map_err(|error| error.to_string())?;
     let write = write_started.elapsed();
 
+    // 消费方随附数据：原始 metadata、摘除的轨道、partVariables 的查表数据。
+    if let Some(path) = &options.meta {
+        let metadata = model_metadata(&model).map(psb_to_json).unwrap_or(Value::Null);
+        let snapped: serde_json::Map<String, Value> = tracks
+            .iter()
+            .map(|(label, entries)| {
+                let list = Value::Array(entries.iter().map(|(track, value)| Value::Array(vec![Value::String(track.clone()), number_json(*value)])).collect());
+                (label.clone(), list)
+            })
+            .collect();
+        let payload = serde_json::json!({
+            "metadata": sorted_object(&metadata),
+            "snaps": Value::Object(snapped),
+            "parts": part_table(model_metadata(&model).unwrap_or(&emote_psb::value::PsbValue::Null)),
+        });
+        fs::write(path, serde_json::to_string(&payload).map_err(|error| error.to_string())?).map_err(|error| error.to_string())?;
+    }
+
     if let Some(path) = &options.snaps {
         let map: BTreeMap<&String, Vec<Value>> = tracks
             .iter()
@@ -186,6 +211,14 @@ fn bake_model(options: &Options) -> Result<String, String> {
         texture_pixels,
         started.elapsed()
     ))
+}
+
+fn number_json(value: f64) -> Value {
+    if value.fract() == 0.0 {
+        Value::Number(serde_json::Number::from(value as i64))
+    } else {
+        serde_json::Number::from_f64(value).map_or(Value::Null, Value::Number)
+    }
 }
 
 /// 供未来子命令复用的路径检查。

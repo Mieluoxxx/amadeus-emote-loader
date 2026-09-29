@@ -7,11 +7,21 @@ use emote_psb::value::{number::PsbNumber, PsbValue};
 use serde_json::{Map, Number, Value};
 
 pub mod normalize;
+pub mod parts;
 pub mod texture;
 pub use normalize::{detach_snap_tracks, prepare_model, NormalizeError, ENTRY_LABEL};
+pub use parts::{part_table, part_variables, part_selectors, PartError};
 pub use texture::{decode_png, Texture, TextureError};
 
 /// 资源引用在 FreeMote JSON 里的写法：`#resource#N` = 贴图资源，`#resource@N` = 附加资源。
+/// 取模型树的 `metadata` 子树（消费方要的 `variableMetaInfoList` / `eyeControl` / `customSelectorList` 都在里面）。
+pub fn model_metadata(model: &PsbValue) -> Option<&PsbValue> {
+    match model {
+        PsbValue::Object(entries) => entries.get("metadata"),
+        _ => None,
+    }
+}
+
 fn resource_string(value: &PsbValue) -> Option<String> {
     match value {
         PsbValue::Resource(index) => Some(format!("#resource#{index}")),

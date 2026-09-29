@@ -32,3 +32,7 @@ path = "src/bin/psb-normalize.rs"
 [[bin]]
 name = "psb-resources"
 path = "src/bin/psb-resources.rs"
+
+[[bin]]
+name = "psb-parts"
+path = "src/bin/psb-parts.rs"

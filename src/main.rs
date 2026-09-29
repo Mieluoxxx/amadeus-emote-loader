@@ -6,7 +6,7 @@
 
 use std::{env, fs::File, io::BufReader, process::ExitCode, time::Instant};
 
-use emote_parser::{psb_to_json, sorted_object};
+use amadeus_emote_loader::{psb_to_json, sorted_object};
 use emote_psb::{psb::read::PsbFile, value::PsbValue};
 
 fn main() -> ExitCode {

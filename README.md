@@ -1,8 +1,11 @@
-# E-mote 数据层（暂用名 OpenEmoteSDK）
+# amadeus-emote-loader
 
-> **名字待定。** 这个仓库目前只做**数据层**：解外壳、解析、兼容规范化、编码、导出元数据。
-> 渲染仍然完全依赖 M2 的闭源运行时（FreeMote-SDK 的 WebGL 构建，CC BY-NC-SA 二进制），
-> 所以叫 "OpenEmoteSDK" 现在是**过度承诺**；更准确的说法见下面「它是什么／不是什么」。
+**E-mote（EMT/PSB）模型数据层。** 与 M2 Co., Ltd.、Project AZUSA 均无隶属关系；
+E-mote 是 M2 的产品名，本项目只处理它的数据文件。
+
+> 边界说明：本仓库**不含渲染**。渲染依赖 M2 的闭源运行时（FreeMote-SDK 的 WebGL 构建，
+> CC BY-NC-SA 二进制），本仓库只负责把模型数据整理成它能直接吃的字节。
+> 所以这里没有 “SDK”、没有引擎，也没有重写引擎的打算。
 
 ## 它是什么
 
@@ -54,9 +57,11 @@
 
 ## 许可
 
-**待定（需要仓库所有者决定）。** 建议自有代码用 `MIT OR Apache-2.0`：
-本仓库依赖 `emote-psb`(MIT)，而消费者之一是 Apache-2.0 的宿主应用，
-用 AGPL 会把许可约束传染给下游。在主人确定之前，此文件不声明具体条款。
+自有代码用 **`MIT OR Apache-2.0`**（`Cargo.toml` 已声明）。本仓库依赖 `emote-psb`(MIT)，
+消费方之一是 Apache-2.0 的宿主应用，所以没选 AGPL。
+
+**待办：`LICENSE-MIT` / `LICENSE-APACHE` 正文还没补**（要仓库所有者确认条款后再落），
+确认前不要对外发布这个 crate。
 
 ## 用法
 

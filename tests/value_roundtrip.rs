@@ -1,6 +1,6 @@
 //! 值转换的对称性：PSB 值 ↔ FreeMote 风格 JSON 必须可逆，尤其是资源引用字符串。
 
-use emote_parser::{json_to_psb, psb_to_json};
+use amadeus_emote_loader::{json_to_psb, psb_to_json};
 use emote_psb::value::{number::PsbNumber, PsbValue};
 use serde_json::json;
 
@@ -38,5 +38,5 @@ fn 数值与嵌套结构可逆() {
 #[test]
 fn 排序不改变内容() {
     let value = json!({ "b": [1, { "d": 2, "c": 3 }], "a": "x" });
-    assert_eq!(emote_parser::sorted_object(&value), value);
+    assert_eq!(amadeus_emote_loader::sorted_object(&value), value);
 }

@@ -199,7 +199,7 @@ node tools/check-parser.mjs
 
 ## 许可
 
-本仓库自有代码用 **Apache-2.0**，正文见 [`LICENSE`](LICENSE)（未改动的标准文本；
+本仓库自有代码用 **Apache-2.0**，正文见 [`LICENSE`](https://github.com/Mieluoxxx/amadeus-emote-loader/blob/main/LICENSE)（未改动的标准文本；
 Apache-2.0 的正文里不含版权人字段，所以这里**没有**填任何署名 —— 如需显式署名，
 另加 `NOTICE` 文件即可）。
 

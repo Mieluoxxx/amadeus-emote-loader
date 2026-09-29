@@ -6,6 +6,8 @@ rust-version = "1.80"
 license = "Apache-2.0"
 description = "E-mote (EMT/PSB) model data layer: parse, adapt for the legacy runtime, and bake a loadable PSB"
 readme = "README.md"
+repository = "https://github.com/Mieluoxxx/amadeus-emote-loader"
+homepage = "https://github.com/Mieluoxxx/amadeus-emote-loader"
 keywords = ["e-mote", "emote", "psb", "emt", "game"]
 categories = ["parser-implementations", "game-development", "encoding"]
 

@@ -3,8 +3,11 @@ name = "amadeus-emote-loader"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.80"
-publish = false
-license = "MIT OR Apache-2.0"
+license = "Apache-2.0"
+description = "E-mote (EMT/PSB) model data layer: parse, adapt for the legacy runtime, and bake a loadable PSB"
+readme = "README.md"
+keywords = ["e-mote", "emote", "psb", "emt", "game"]
+categories = ["parser-implementations", "game-development", "encoding"]
 
 [dependencies]
 emote-psb = "0.8"
@@ -16,6 +19,10 @@ smol_str = "0.3"
 [lib]
 name = "amadeus_emote_loader"
 path = "src/lib.rs"
+
+[[bin]]
+name = "emote-loader"
+path = "src/bin/emote-loader.rs"
 
 [[bin]]
 name = "psb-dump"

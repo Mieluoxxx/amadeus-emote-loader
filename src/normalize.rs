@@ -80,6 +80,13 @@ fn member_mut<'a>(value: &'a mut PsbValue, key: &str) -> Option<&'a mut PsbValue
     object_mut(value)?.get_mut(key)
 }
 
+fn string_of(value: &PsbValue) -> Option<String> {
+    match value {
+        PsbValue::String(text) => Some(text.to_string()),
+        _ => None,
+    }
+}
+
 fn number_of(value: &PsbValue) -> Option<f64> {
     match value {
         PsbValue::Number(PsbNumber::Integer(number)) => Some(*number as f64),
@@ -353,4 +360,63 @@ pub fn prepare_model(model: &mut PsbValue) -> Result<(), NormalizeError> {
     convert_opacity(model)?;
     set_spec(model);
     set_base_entry(model)
+}
+
+/// 表情时间线里「只有一帧、且落在第 0 帧」的选择器轨道：摘下来交给调用方。
+///
+/// 原因：选择器按选项序号取值，本质离散（easing 也是瞬跳），而头身等连续量要线性走约 350ms；
+/// 不摘就会「脸先啪地变、头身还在移动」。摘下的值由调用方在过渡中点写入。
+///
+/// 返回 `(时间线标签, [(轨道标签, 取值)…])`，顺序与数据一致。
+pub fn detach_snap_tracks(model: &mut PsbValue) -> Vec<(String, Vec<(String, f64)>)> {
+    let selectors: Vec<String> = member(model, "metadata")
+        .map(|metadata| {
+            object_entries(member(metadata, "selectorControl").unwrap_or(&PsbValue::Null))
+                .iter()
+                .filter(|control| truthy(member(control, "enabled")))
+                .filter_map(|control| member(control, "label").and_then(string_of))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let mut result = Vec::new();
+    let Some(timelines) = member_mut(model, "metadata")
+        .and_then(|metadata| member_mut(metadata, "timelineControl"))
+        .and_then(list_mut)
+    else {
+        return result;
+    };
+    for timeline in timelines.iter_mut() {
+        let Some(label) = member(timeline, "label").and_then(string_of) else {
+            continue;
+        };
+        if !label.starts_with("表情_") {
+            continue;
+        }
+        let mut detached = Vec::new();
+        if let Some(tracks) = member_mut(timeline, "variableList").and_then(list_mut) {
+            tracks.retain(|track| {
+                let Some(track_label) = member(track, "label").and_then(string_of) else {
+                    return true;
+                };
+                if !selectors.iter().any(|selector| selector == &track_label) {
+                    return true;
+                }
+                let keys: Vec<&PsbValue> = object_entries(member(track, "frameList").unwrap_or(&PsbValue::Null))
+                    .iter()
+                    .filter(|frame| truthy(member(frame, "content")))
+                    .collect();
+                if keys.len() != 1 || number_of(member(keys[0], "time").unwrap_or(&PsbValue::Null)) != Some(0.0) {
+                    return true;
+                }
+                let Some(value) = member(keys[0], "content").and_then(|content| member(content, "value")).and_then(number_of) else {
+                    return true;
+                };
+                detached.push((track_label, value));
+                false
+            });
+        }
+        result.push((label, detached));
+    }
+    result
 }

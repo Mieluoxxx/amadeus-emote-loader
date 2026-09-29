@@ -36,8 +36,8 @@ E-mote 是 M2 的产品名，本项目只处理它的数据文件。
 | 0 | 写 PSB（`emote-psb` 的 `PsbWriter`）→ 回读比对 | ✅ 树与资源字节完全相同 |
 | 0 | 端到端像素验收（132 MB 真实贴图模型，JS 编码 vs Rust 回写） | ✅ 像素指纹完全相同 |
 | 1 | 兼容规范化（选择器索引化、`cw`→`opa`、`arm_type`、眼球镜像…） | ✅ 已移植 `prepareModel` 的 5 条规则，四个模型与 JS 参照实现逐字段一致；8 条单测 |
-| 1 | 离散轨道摘除 + `snaps` 导出（`detachSnapTracks`） | ⬜ 未开始 |
-| 1 | `bake` 子命令：模型目录 → 现成 PSB | ⬜ 未开始 |
+| 1 | 离散轨道摘除 + `snaps` 导出（`detachSnapTracks`） | ✅ 四个模型 56 条轨道与 JS 参照一致 |
+| 1 | `bake` 子命令：模型目录 → 现成 PSB（含 PNG 解码） | ✅ 四个模型烘焙树的与 JS 参照一致；常服 C 367ms / 132MB |
 | 2 | MZS 外壳（`mzs\0` + zstd + MT19937 密钥流） | ⬜ 未开始 |
 | 3 | 编到 wasm32 + 贴图路径 | ⬜ 未开始 |
 
@@ -53,6 +53,7 @@ E-mote 是 M2 的产品名，本项目只处理它的数据文件。
 | 依赖 | 用途 | 许可 |
 |---|---|---|
 | [`emote-psb`](https://github.com/storycraft/emote-psb-rs) | PSB/MDF 的读写与值类型 | MIT |
+| [`png`](https://github.com/image-rs/image-png) | 贴图解码（PNG → RGBA8） | MIT/Apache-2.0 |
 | `serde_json` | 元数据与调试输出 | MIT/Apache-2.0 |
 
 本仓库**不含**任何 M2 或 FreeMote 的二进制；渲染层由消费者自己引入。
@@ -77,9 +78,31 @@ cargo run --release --bin psb-dump -- <输入.psb> <输出.json>
 # 读 → 写 → 再读，校验树与资源字节
 cargo run --release --bin psb-roundtrip -- <输入.psb> <输出.psb>
 
-# 原始解包 JSON → 兼容规范化 → JSON（与实验室的 JS 参照实现对照）
-cargo run --release --bin psb-normalize -- <raw.json> <out.json>
+# 原始解包 JSON → 兼容规范化（--detach 再摘除离散轨道，--snaps 导出摘下的值）
+cargo run --release --bin psb-normalize -- [--detach] [--snaps <file.json>] <raw.json> <out.json>
+
+# 模型目录 → 现成 PSB（含贴图解码），交给运行时直接 loadData
+cargo run --release --bin emote-loader -- bake --model <模型目录> --out <file.psb> [--snaps <file.json>]
+
+# 导出 PSB 内的资源，用于逐字节比对
+cargo run --release --bin psb-resources -- <input.psb> <输出目录>
 ```
+
+## 贴图路径的一个实测结论
+
+浏览器链路（`createImageBitmap` → canvas → `getImageData`）会**丢精度**：canvas 内部按预乘存储，
+读回时反乘会放大误差 —— alpha 128 差 1 级、16 差 8 级、2 差 127 级，alpha=0 的像素 RGB 直接被抹成 0。
+Rust 侧直接解 PNG 没有这个问题，alpha 通道逐字节相同。
+
+端到端对照（同一模型，JS 烘焙 vs Rust 烘焙，像素抽样步长 7）：
+
+| 指标 | 结果 |
+|---|---|
+| 抽样像素 | 9890 |
+| 差异像素 | 1（最大通道增量 3） |
+| 总亮度 sum | 5,163,900 vs 5,164,308（+0.008%） |
+| 体积 | 138,608,544B vs 138,124,542B（−0.35%） |
+| 耗时 | 浏览器链路（fetch 26MB + 解 137MB RGBA + JS 编码） vs **367ms** |
 
 `psb-dump` 的输出与 FreeMote `PsbDecompile` 的 JSON 对齐（资源引用写作 `#resource#N` / `#resource@N`），
 因此可以直接和磁盘上的解包产物做深比较。

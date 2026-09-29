@@ -7,7 +7,9 @@ use emote_psb::value::{number::PsbNumber, PsbValue};
 use serde_json::{Map, Number, Value};
 
 pub mod normalize;
-pub use normalize::{prepare_model, NormalizeError, ENTRY_LABEL};
+pub mod texture;
+pub use normalize::{detach_snap_tracks, prepare_model, NormalizeError, ENTRY_LABEL};
+pub use texture::{decode_png, Texture, TextureError};
 
 /// 资源引用在 FreeMote JSON 里的写法：`#resource#N` = 贴图资源，`#resource@N` = 附加资源。
 fn resource_string(value: &PsbValue) -> Option<String> {

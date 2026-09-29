@@ -1,0 +1,23 @@
+[package]
+name = "emote-parser"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+publish = false
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+emote-psb = "0.8"
+serde_json = "1"
+
+[lib]
+name = "emote_parser"
+path = "src/lib.rs"
+
+[[bin]]
+name = "psb-dump"
+path = "src/main.rs"
+
+[[bin]]
+name = "psb-roundtrip"
+path = "src/bin/psb-roundtrip.rs"
